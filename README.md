@@ -6,11 +6,11 @@ It seamlessly integrates into the Tally UI, adding quick-access buttons and auto
 
 ## 🚀 Features
 
-* [cite_start]**One-Click Sharing:** Directly open WhatsApp Web with a pre-filled, nicely formatted message containing the Tally data[cite: 28].
-* [cite_start]**Voucher Sharing:** Sends complete voucher details including Voucher Number, Date, Party Name, Itemized Inventory (Name, Qty, Rate, Amount), and Total Amount[cite: 36, 37, 38].
-* [cite_start]**Ledger Statement Sharing:** Sends a detailed account statement for a specified period, including Opening Balance, individual transactions (Date, Type, Number, Dr/Cr Amount), and Closing Balance[cite: 22, 23, 24, 28].
-* [cite_start]**Automatic Mobile Number Fetching:** Pulls the mobile number directly from the Party's Ledger Master (`LedgerMobile` or `MobileNo`)[cite: 16].
-* [cite_start]**Smart Greetings:** Includes a friendly, personalized greeting using the Current Company Name and emojis[cite: 14].
+* **One-Click Sharing:** Directly open WhatsApp Web with a pre-filled, nicely formatted message containing the Tally data[cite: 28].
+* **Voucher Sharing:** Sends complete voucher details including Voucher Number, Date, Party Name, Itemized Inventory (Name, Qty, Rate, Amount), and Total Amount[cite: 36, 37, 38].
+* **Ledger Statement Sharing:** Sends a detailed account statement for a specified period, including Opening Balance, individual transactions (Date, Type, Number, Dr/Cr Amount), and Closing Balance[cite: 22, 23, 24, 28].
+* **Automatic Mobile Number Fetching:** Pulls the mobile number directly from the Party's Ledger Master (`LedgerMobile` or `MobileNo`)[cite: 16].
+* **Smart Greetings:** Includes a friendly, personalized greeting using the Current Company Name and emojis[cite: 14].
 
 ## ⌨️ Shortcuts & Usage
 
@@ -19,8 +19,10 @@ Once loaded into Tally Prime, navigate to the respective forms to use the shortc
 | Feature | Screen | Shortcut Key |
 | :--- | :--- | :--- |
 | **WhatsApp Share Voucher** | Voucher Alteration/Display Screen | `Alt + W` |
-| **WhatsApp Share recipt** | 
-
+| **WhatsApp Share Recipt** | Recipt | `Alt + W` |
+| **whatsApp share Payment** | Payment | `Alt + W` |
+| **whatsApp share Journal** | Journal | `Alt + W` |
+s
 ## 📥 Installation Steps
 
 1. Download the `WhatsApp_Share_Tally.tdl` file.
