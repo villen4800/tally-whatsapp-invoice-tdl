@@ -1,4 +1,4 @@
-# WhatsApp Share TDL for Tally Prime - v30
+# WhatsApp Share TDL for Tally Prime
 
 This repository contains a customized TDL script for Tally Prime that allows users to instantly share Vouchers and other Statements with their parties via WhatsApp. 
 
@@ -8,7 +8,6 @@ It seamlessly integrates into the Tally UI, adding quick-access buttons and auto
 
 * **One-Click Sharing:** Directly open WhatsApp Web with a pre-filled, nicely formatted message containing the Tally data[cite: 28].
 * **Voucher Sharing:** Sends complete voucher details including Voucher Number, Date, Party Name, Itemized Inventory (Name, Qty, Rate, Amount), and Total Amount[cite: 36, 37, 38].
-* **Ledger Statement Sharing:** Sends a detailed account statement for a specified period, including Opening Balance, individual transactions (Date, Type, Number, Dr/Cr Amount), and Closing Balance[cite: 22, 23, 24, 28].
 * **Automatic Mobile Number Fetching:** Pulls the mobile number directly from the Party's Ledger Master (`LedgerMobile` or `MobileNo`)[cite: 16].
 * **Smart Greetings:** Includes a friendly, personalized greeting using the Current Company Name and emojis[cite: 14].
 
