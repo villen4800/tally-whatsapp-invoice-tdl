@@ -1,20 +1,5 @@
 ;;===========================================================
-;; WhatsApp Share TDL for Tally Prime - v30
-;;
-;; ROOT CAUSE (confirmed across v18-v29):
-;;   Inside a TDL Function, WALK COLLECTION cannot access
-;;   $DebitAmount / $CreditAmount / $Amount / $IsDr from
-;;   "Vouchers of Ledger" — they all return 0.
-;;   This is a known TDL Function limitation.
-;;
-;; SOLUTION in v30:
-;;   Define a custom [Collection: WA Ledger Lines] that uses
-;;   Source Collection "Vouchers of Ledger" and computes
-;;   the Dr/Cr amount via $$AbsoluteValue + sign logic as
-;;   a Compute field. Then walk THAT collection in the Function.
-;;
-;;   Additionally add [Collection: WA Ledger Lines] with
-;;   Compute fields that the Function CAN read.
+;; WhatsApp Share TDL for Tally Prime 
 ;;===========================================================
 
 ;;-----------------------------------------------------------
