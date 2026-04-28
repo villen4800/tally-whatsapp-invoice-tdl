@@ -1,0 +1,242 @@
+;;===========================================================
+;; WhatsApp Share TDL for Tally Prime - v30
+;;
+;; ROOT CAUSE (confirmed across v18-v29):
+;;   Inside a TDL Function, WALK COLLECTION cannot access
+;;   $DebitAmount / $CreditAmount / $Amount / $IsDr from
+;;   "Vouchers of Ledger" — they all return 0.
+;;   This is a known TDL Function limitation.
+;;
+;; SOLUTION in v30:
+;;   Define a custom [Collection: WA Ledger Lines] that uses
+;;   Source Collection "Vouchers of Ledger" and computes
+;;   the Dr/Cr amount via $$AbsoluteValue + sign logic as
+;;   a Compute field. Then walk THAT collection in the Function.
+;;
+;;   Additionally add [Collection: WA Ledger Lines] with
+;;   Compute fields that the Function CAN read.
+;;===========================================================
+
+;;-----------------------------------------------------------
+;; COLLECTION: pulls each row of the open Ledger Vouchers
+;; report and exposes Dr/Cr as computed string fields
+;;-----------------------------------------------------------
+
+[Collection: WA Ledger Lines]
+    Source Collection : Vouchers of Ledger
+    Compute           : WADate    : $Date
+    Compute           : WAVType   : $VoucherTypeName
+    Compute           : WAVNo     : $VoucherNumber
+    ;;  $LedgerName on a Vouchers of Ledger row = the party ledger
+    Compute           : WAParty   : $LedgerName
+    ;;  $Amount in this collection = signed amount of the party leg
+    ;;  Positive → Debit to party (Sales)
+    ;;  Negative → Credit to party (Receipt, Credit Note)
+    Compute           : WAAmtRaw  : $Amount
+    Compute           : WAIsDr    : $$IsPositive:$Amount
+
+;;-----------------------------------------------------------
+;; FUNCTION
+;;-----------------------------------------------------------
+
+[Function: FNWALedger]
+    Variable : vParty    : String
+    Variable : vMobile   : String
+    Variable : vCompany  : String
+    Variable : vFromDate : String
+    Variable : vToDate   : String
+    Variable : vMsg      : String
+    Variable : vURL      : String
+    Variable : vLines    : String
+    Variable : vDate     : String
+    Variable : vVType    : String
+    Variable : vVNo      : String
+    Variable : vGreeting : String
+    Variable : vOpBal    : String
+    Variable : vClBal    : String
+    Variable : vOpNum    : Number
+    Variable : vRunBal   : Number
+    Variable : vAmtRaw   : Number
+    Variable : vAmtAbs   : Number
+
+    ;; ── Company & period ─────────────────────────────────
+    001 : SET : vCompany  : $Name:Company:##SVCurrentCompany
+    002 : SET : vFromDate : $$String:##SVFromDate
+    003 : SET : vToDate   : $$String:##SVToDate
+    004 : SET : vGreeting : "Hello from *" + ##vCompany + "*! %F0%9F%91%8B"
+
+    ;; ── Party name from first row of WA Ledger Lines ─────
+    005 : SET : vParty : ""
+    006 : WALK COLLECTION : WA Ledger Lines
+    007 :   IF : ##vParty = ""
+    008 :     SET : vParty : $WAParty
+    009 :   END IF
+    010 : END WALK
+
+    ;; ── Mobile ───────────────────────────────────────────
+    011 : SET : vMobile : $LedgerMobile:Ledger:##vParty
+    012 : IF : ##vMobile = ""
+    013 :   SET : vMobile : $MobileNo:Ledger:##vParty
+    014 : END IF
+
+    ;; ── Opening Balance ──────────────────────────────────
+    015 : SET : vOpNum  : $$Number:$OpeningBalance:Ledger:##vParty
+    016 : SET : vRunBal : ##vOpNum
+    017 : IF : ##vOpNum < 0
+    018 :   SET : vOpBal : "Rs." + $$String:(##vOpNum * -1) + " Cr"
+    019 : ELSE
+    020 :   IF : ##vOpNum > 0
+    021 :     SET : vOpBal : "Rs." + $$String:##vOpNum + " Dr"
+    022 :   ELSE
+    023 :     SET : vOpBal : "NIL"
+    024 :   END IF
+    025 : END IF
+
+    ;; ── Walk WA Ledger Lines and build message ───────────
+    ;; $WAAmtRaw is the Compute field — positive = Dr, negative = Cr
+    026 : SET : vLines : ""
+    027 : WALK COLLECTION : WA Ledger Lines
+    028 :   SET : vDate   : $$String:$WADate
+    029 :   SET : vVType  : $WAVType
+    030 :   SET : vVNo    : $WAVNo
+    031 :   SET : vAmtRaw : $$Number:$WAAmtRaw
+    032 :   IF : ##vAmtRaw < 0
+    033 :     SET : vAmtAbs : ##vAmtRaw * -1
+    034 :   ELSE
+    035 :     SET : vAmtAbs : ##vAmtRaw
+    036 :   END IF
+    037 :   IF : $WAIsDr
+    038 :     SET : vRunBal : ##vRunBal + ##vAmtAbs
+    039 :     SET : vLines  : ##vLines + "%0A" + ##vDate + " | " + ##vVType + " " + ##vVNo + " | *Dr: Rs." + $$String:##vAmtAbs + "*"
+    040 :   ELSE
+    041 :     SET : vRunBal : ##vRunBal - ##vAmtAbs
+    042 :     SET : vLines  : ##vLines + "%0A" + ##vDate + " | " + ##vVType + " " + ##vVNo + " | Cr: Rs." + $$String:##vAmtAbs
+    043 :   END IF
+    044 : END WALK
+
+    ;; ── Closing Balance ──────────────────────────────────
+    045 : IF : ##vRunBal < 0
+    046 :   SET : vClBal : "Rs." + $$String:(##vRunBal * -1) + " Cr"
+    047 : ELSE
+    048 :   IF : ##vRunBal > 0
+    049 :     SET : vClBal : "Rs." + $$String:##vRunBal + " Dr"
+    050 :   ELSE
+    051 :     SET : vClBal : "NIL"
+    052 :   END IF
+    053 : END IF
+
+    ;; ── Build & send ─────────────────────────────────────
+    054 : SET : vMsg : ##vGreeting + "%0A%0A*Account Statement*%0AParty: " + ##vParty + "%0APeriod: " + ##vFromDate + " to " + ##vToDate + "%0AOpening Bal: " + ##vOpBal + "%0A%0A*Transactions:*" + ##vLines + "%0A%0AClosing Bal: " + ##vClBal + "%0A%0AThank you! %F0%9F%99%8F"
+
+    055 : IF : ##vMobile = ""
+    056 :   SET : vURL : "https://wa.me/?text=" + ##vMsg
+    057 : ELSE
+    058 :   SET : vURL : "https://wa.me/91" + ##vMobile + "?text=" + ##vMsg
+    059 : END IF
+    060 : BROWSE URL : ##vURL
+
+;;-----------------------------------------------------------
+
+[Function: FNWAVoucher]
+    Variable : vParty    : String
+    Variable : vAccount  : String
+    Variable : vMobile   : String
+    Variable : vVchNo    : String
+    Variable : vDate     : String
+    Variable : vAmt      : String
+    Variable : vCompany  : String
+    Variable : vMsg      : String
+    Variable : vURL      : String
+    Variable : vItems    : String
+    Variable : vItemName : String
+    Variable : vQty      : String
+    Variable : vRate     : String
+    Variable : vIAmt     : String
+    Variable : vVchType  : String
+    Variable : vAmtNum   : Number
+    Variable : vGreeting : String
+
+    001 : SET : vParty   : $PartyLedgerName
+    002 : SET : vVchNo   : $VoucherNumber
+    003 : SET : vDate    : $$String:$Date
+    004 : SET : vVchType : $VoucherTypeName
+    005 : SET : vCompany : $Name:Company:##SVCurrentCompany
+    006 : SET : vGreeting : "Hello from *" + ##vCompany + "*! %F0%9F%91%8B"
+
+    007 : SET : vAmtNum : $$Number:$Amount
+    008 : IF : ##vAmtNum < 0
+    009 :   SET : vAmt : $$String:(##vAmtNum * -1)
+    010 : ELSE
+    011 :   SET : vAmt : $$String:##vAmtNum
+    012 : END IF
+
+    013 : SET : vMobile : $LedgerMobile:Ledger:##vParty
+    014 : IF : ##vMobile = ""
+    015 :   SET : vMobile : $MobileNo:Ledger:##vParty
+    016 : END IF
+
+    017 : SET : vAccount : ""
+    018 : WALK COLLECTION : Ledger Entries
+    019 :   IF : $LedgerName != ##vParty
+    020 :     IF : ##vAccount = ""
+    021 :       SET : vAccount : $LedgerName
+    022 :     END IF
+    023 :   END IF
+    024 : END WALK
+
+    025 : SET : vItems : ""
+    026 : WALK COLLECTION : Inventory Entries
+    027 :   SET : vItemName : $StockItemName
+    028 :   SET : vQty      : $$String:$ActualQty
+    029 :   SET : vRate     : $$String:$Rate
+    030 :   SET : vAmtNum   : $$Number:$Amount
+    031 :   IF : ##vAmtNum < 0
+    032 :     SET : vIAmt : $$String:(##vAmtNum * -1)
+    033 :   ELSE
+    034 :     SET : vIAmt : $$String:##vAmtNum
+    035 :   END IF
+    036 :   SET : vItems : ##vItems + "%0A  - " + ##vItemName + " | Qty: " + ##vQty + " | Rate: Rs." + ##vRate + " | Amt: Rs." + ##vIAmt
+    037 : END WALK
+
+    038 : IF : ##vItems != ""
+    039 :   SET : vMsg : ##vGreeting + "%0A%0A*" + ##vVchType + "*%0ANo: " + ##vVchNo + " | Date: " + ##vDate + "%0AParty: " + ##vParty + "%0A%0A*Items:*" + ##vItems + "%0A%0ATotal: Rs." + ##vAmt + "%0A%0AThank you! %F0%9F%99%8F"
+    040 : ELSE
+    041 :   SET : vMsg : ##vGreeting + "%0A%0A*" + ##vVchType + "*%0ANo: " + ##vVchNo + " | Date: " + ##vDate + "%0AParty: " + ##vParty + "%0AAccount: " + ##vAccount + "%0AAmount: Rs." + ##vAmt + "%0A%0AThank you! %F0%9F%99%8F"
+    042 : END IF
+
+    043 : IF : ##vMobile = ""
+    044 :   SET : vURL : "https://wa.me/?text=" + ##vMsg
+    045 : ELSE
+    046 :   SET : vURL : "https://wa.me/91" + ##vMobile + "?text=" + ##vMsg
+    047 : END IF
+    048 : BROWSE URL : ##vURL
+
+;;-----------------------------------------------------------
+;; BUTTONS
+;;-----------------------------------------------------------
+
+[Button: WA Share Voucher Button]
+    Title  : "WhatsApp Share"
+    Key    : Alt+W
+    Action : Call : FNWAVoucher
+    Scope  : Voucher
+
+[Button: WA Share Ledger Button]
+    Title  : "WhatsApp Ledger"
+    Key    : Alt+L
+    Action : Call : FNWALedger
+    Scope  : Report
+
+;;-----------------------------------------------------------
+;; ATTACH TO FORMS
+;;-----------------------------------------------------------
+
+[#Form: Voucher]
+    Add : Button : WA Share Voucher Button
+
+[#Form: Ledger Vouchers]
+    Add : Button : WA Share Ledger Button
+
+;;===========================================================
+;; END OF TDL
+;;===========================================================
