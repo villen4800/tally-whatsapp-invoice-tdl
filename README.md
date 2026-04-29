@@ -21,7 +21,7 @@ Once loaded into Tally Prime, navigate to the respective forms to use the shortc
 | **WhatsApp Share Recipt** | Recipt | `Alt + W` |
 | **whatsApp share Payment** | Payment | `Alt + W` |
 | **whatsApp share Journal** | Journal | `Alt + W` |
-s
+
 ## 📥 Installation Steps
 
 1. Download the `WhatsApp_Share_Tally.tdl` file.
