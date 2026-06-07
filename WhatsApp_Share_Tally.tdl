@@ -206,12 +206,6 @@
     Action : Call : FNWAVoucher
     Scope  : Voucher
 
-[Button: WA Share Ledger Button]
-    Title  : "WhatsApp Ledger"
-    Key    : Alt+L
-    Action : Call : FNWALedger
-    Scope  : Report
-
 ;;-----------------------------------------------------------
 ;; ATTACH TO FORMS
 ;;-----------------------------------------------------------
